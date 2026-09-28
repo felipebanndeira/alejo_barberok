@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Accesos - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+        <aside class="sidebar">
+        <div class="sidebar-logo mb-2">
+            {% if settings.get('logo_path') %}
+                <img src="{{ url_for('static', filename='img/' + settings.get('logo_path')) }}" alt="Logo">
+            {% endif %}
+            <h2 class="space-font">{{ settings.get('barber_name', 'Alejo Barber') }}</h2>
+        </div>
+        <ul>
+            <li><a href="{{ url_for('admin.dashboard') }}" {% if request.endpoint == 'admin.dashboard' %}class="active"{% endif %}>Agenda</a></li>
+            <li><a href="{{ url_for('admin.finances') }}" {% if request.endpoint == 'admin.finances' %}class="active"{% endif %}>Caja</a></li>
+            <li><a href="{{ url_for('admin.blocks') }}" {% if request.endpoint == 'admin.blocks' %}class="active"{% endif %}>Bloqueos</a></li>
+            <li><a href="{{ url_for('admin.users') }}" {% if request.endpoint == 'admin.users' %}class="active"{% endif %}>Accesos</a></li>
+        </ul>
+    </aside>
+    <div class="admin-content">
+        <h2 class="mb-2 space-font">Correos Autorizados (Admins)</h2>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div style="color: #primary-gold; margin-bottom: 1rem;">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="stats-grid">
+            <div class="glass-panel">
+                <h3 class="mb-2 space-font">Agregar Acceso</h3>
+                <form method="POST">
+                    <label>Correo Electrónico</label>
+                    <input type="email" name="email" required>
+                    
+                    <label>Contraseña</label>
+                    <div style="position: relative;">
+                        <input type="password" id="password" name="password" required style="padding-right: 40px;">
+                        <button type="button" onclick="const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password';" style="position:absolute; right:10px; top:15px; background:none; border:none; color:var(--text-dim); cursor:pointer;"><i data-lucide="eye" style="width:18px;"></i></button>
+                    </div>
+                    
+                    <button type="submit" class="btn-gold mt-2 w-100">Autorizar Correo</button>
+                </form>
+            </div>
+            
+            <div class="glass-panel">
+                <h3 class="mb-2 space-font">Usuarios Actuales</h3>
+                {% if users %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Correo / Usuario</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td>{{ u.username }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('admin.delete_user', id=u.id) }}">
+                                    <button type="submit" class="btn-glass" style="padding:0.25rem 0.5rem;"><i data-lucide="trash-2" style="width:16px;"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-dim">No hay usuarios.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

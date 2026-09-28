@@ -1,0 +1,14 @@
+# Entorno virtual y temporales de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+
+# Variables de entorno y credenciales sensibles
+.env
+
+# Bases de datos SQLite locales anteriores
+*.db
+*.sqlite3

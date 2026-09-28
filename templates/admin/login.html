@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Login - Admin{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 400px; margin-top: 10vh;">
+    <div class="glass-panel text-center">
+        <h2 class="gold-text mb-2"><i data-lucide="lock"></i> Acceso Admin</h2>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div style="color: #dc3545; margin-bottom: 1rem;">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST">
+            <input type="text" name="username" placeholder="Correo Electrónico" required>
+            
+            <div style="position: relative;">
+                <input type="password" name="password" id="login-password" placeholder="Contraseña" required style="width: 100%; padding-right: 40px;">
+                <button type="button" onclick="togglePassword()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 0;">
+                    <i data-lucide="eye" id="eye-icon" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            
+            <script>
+            function togglePassword() {
+                const input = document.getElementById('login-password');
+                const icon = document.getElementById('eye-icon');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.setAttribute('data-lucide', 'eye-off');
+                } else {
+                    input.type = 'password';
+                    icon.setAttribute('data-lucide', 'eye');
+                }
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+            }
+            </script>
+
+            <button type="submit" class="btn-gold w-100 mt-2" style="width: 100%;">Ingresar</button>
+        </form>
+        <a href="{{ url_for('cliente.index') }}" class="btn-outline w-100" style="display:block; width:100%; text-align:center; margin-top: 1rem; text-decoration: none;">Volver al inicio</a>
+    </div>
+</div>
+{% endblock %}

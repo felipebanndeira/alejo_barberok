@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+<!-- Top Header -->
+<header class="top-header">
+    <div class="header-logo">
+        {% if settings.get('logo_path') %}
+            <img src="{{ url_for('static', filename='img/' + settings.get('logo_path')) }}" alt="Logo">
+        {% endif %}
+        <span>{{ settings.get('barber_name', 'Alejo Barber') }}</span>
+    </div>
+    <div class="header-nav">
+        <a href="{{ url_for('cliente.index') }}" class="active">Nuevo Turno</a>
+        <a href="{{ url_for('cliente.mis_turnos') }}">Mis Turnos</a>
+    </div>
+</header>
+
+<!-- Stepper Indicator -->
+<div class="stepper-wrapper">
+    <div class="stepper-lines">
+        <div class="step-line active"></div>
+        <div class="step-line"></div>
+        <div class="step-line"></div>
+    </div>
+    <div class="step-label" id="step-label">Paso 1 de 3 — Servicios</div>
+</div>
+
+<div class="container">
+    <!-- Step 1 -->
+    <div id="step1" class="step-container active">
+        <h2 class="mb-2 space-font">Servicios disponibles</h2>
+        <div class="services-list">
+            {% for s in services %}
+            <div class="service-card" data-id="{{ s.id }}" data-name="{{ s.name }}" data-price="{{ s.price }}">
+                <div class="service-header">
+                    
+                        <div><h3 class="space-font">{{ s.name }}</h3></div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span class="service-price gold-text space-font">${{ "{:,}".format(s.price).replace(",", ".") }}</span>
+                        <i data-lucide="check" class="check-icon gold-text" style="display: none; filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));"></i>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div id="step2" class="step-container">
+        <h2 class="mb-2 space-font">Reserva tu horario</h2>
+        <div style="margin-bottom: 2rem;">
+            
+            <div style="width: 100%; text-align: center;">
+                <input type="text" id="date-picker" class="btn-gold" placeholder="ELEGIR FECHA" readonly="readonly" style="width: 100%; padding: 1.2rem; font-size: 1.1rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; text-align: center; cursor: pointer; border: none; font-family: inherit;">
+            </div>
+        </div>
+        
+        <div>
+            <p class="text-dim mb-2" style="font-size: 0.9rem;"><i data-lucide="clock" style="width: 14px; display:inline-block; vertical-align:middle;"></i> Horarios disponibles</p>
+            <div id="time-slots" class="time-grid mt-2">
+                <p class="text-dim" style="grid-column: 1/-1;">Selecciona una fecha primero.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div id="step3" class="step-container">
+        <h2 class="mb-2 space-font">Información del cliente</h2>
+        
+        <p class="text-dim mb-2" style="font-size: 0.9rem;">Nombre</p>
+        <input type="text" id="client-name" required>
+        
+        <p class="text-dim mb-2" style="font-size: 0.9rem;">Teléfono</p>
+        <input type="tel" id="client-phone" required>
+    
+<div style="text-align: center; margin-top: 3rem;">
+    <p class="text-dim" style="font-size: 0.9rem;">
+        ¿Preferís agendar por mensaje o tenés dudas?<br>
+        <a href="https://wa.me/3755283261" target="_blank" class="gold-text" style="text-decoration:none; display:inline-block; margin-top:0.5rem; font-weight: 500;">
+            <i data-lucide="message-circle" style="width: 16px; vertical-align: text-bottom;"></i> Escribinos al WhatsApp
+        </a>
+    </p>
+</div>
+</div>
+</div>
+
+
+
+
+<!-- Developer Footer -->
+
+<div style="text-align: center; margin-top: 4rem; padding-bottom: 8rem;">
+    <p style="color: #444; font-size: 0.8rem; font-family: 'Inter', sans-serif;">
+        Desarrollado por <a href="https://wa.me/3755802727?text=Hola%20Felipe%2C%20me%20comunico%20porque%20vi%20tu%20trabajo%20en%20la%20web%20de%20Alejo%20Barber.%20Estoy%20interesado%20en%20conocer%20tus%20servicios%20y%20cotizar%20un%20proyecto." target="_blank" style="color: #666; text-decoration: none; border-bottom: 1px solid #444; padding-bottom: 1px; transition: color 0.3s;" onmouseover="this.style.color='#FFCC00'" onmouseout="this.style.color='#666'">Felipe Bandeira</a><br><br><a href="javascript:void(0)" onclick="document.getElementById('privacy-modal').style.display='flex'" style="color: #666; text-decoration: none; border-bottom: 1px solid #444; padding-bottom: 1px; transition: color 0.3s;" onmouseover="this.style.color='#FFCC00'" onmouseout="this.style.color='#666'">Políticas de Privacidad</a>
+    </p>
+</div>
+
+<!-- Sticky Footer -->
+<div class="sticky-footer">
+    <div class="footer-content">
+        <div>
+            <button class="btn-outline" id="footer-prev" style="display: none;">< Atrás</button>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button class="btn-gold" id="footer-next" style="display: none; width: auto;" style="display: none;">Siguiente ></button>
+            <div class="footer-total">
+                <p>Total</p>
+                <h3 id="footer-total" class="space-font">$0</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+<script>
+    flatpickr("#date-picker", {
+        locale: "es",
+        minDate: "today",
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "d/m/Y",
+        disableMobile: true,
+        onChange: function(selectedDates, dateStr, instance) {
+            const event = new Event('change');
+            document.getElementById('date-picker').dispatchEvent(event);
+        }
+    });
+</script>
+{% endblock %}

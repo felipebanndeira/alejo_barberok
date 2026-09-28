@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Configuración - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+        <aside class="sidebar">
+        <div class="sidebar-logo mb-2">
+            {% if settings.get('logo_path') %}
+                <img src="{{ url_for('static', filename='img/' + settings.get('logo_path')) }}" alt="Logo">
+            {% endif %}
+            <h2 class="space-font">{{ settings.get('barber_name', 'Alejo Barber') }}</h2>
+        </div>
+        <ul>
+            <li><a href="{{ url_for('admin.dashboard') }}" {% if request.endpoint == 'admin.dashboard' %}class="active"{% endif %}>Agenda</a></li>
+            <li><a href="{{ url_for('admin.finances') }}" {% if request.endpoint == 'admin.finances' %}class="active"{% endif %}>Caja</a></li>
+            <li><a href="{{ url_for('admin.blocks') }}" {% if request.endpoint == 'admin.blocks' %}class="active"{% endif %}>Bloqueos</a></li>
+            <li><a href="{{ url_for('admin.users') }}" {% if request.endpoint == 'admin.users' %}class="active"{% endif %}>Accesos</a></li>
+        </ul>
+    </aside>
+    <div class="admin-content">
+        <h2 class="mb-2 space-font">Configuración</h2>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div style="color: #28a745; margin-bottom: 1rem;">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="stats-grid">
+                <div class="glass-panel" style="max-width: 600px;">
+                    <h3 class="mb-2 space-font">Horarios (Lunes a Viernes)</h3>
+                    <label>Mañana - Inicio</label>
+                    <input type="time" name="hours_mon_fri_start_1" value="{{ settings.get('hours_mon_fri_start_1', '') }}">
+                    <label>Mañana - Fin</label>
+                    <input type="time" name="hours_mon_fri_end_1" value="{{ settings.get('hours_mon_fri_end_1', '') }}">
+                    <hr style="border-color:var(--glass-border); margin:1rem 0;">
+                    <label>Tarde - Inicio</label>
+                    <input type="time" name="hours_mon_fri_start_2" value="{{ settings.get('hours_mon_fri_start_2', '') }}">
+                    <label>Tarde - Fin</label>
+                    <input type="time" name="hours_mon_fri_end_2" value="{{ settings.get('hours_mon_fri_end_2', '') }}">
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-gold mt-2">Guardar Configuración</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

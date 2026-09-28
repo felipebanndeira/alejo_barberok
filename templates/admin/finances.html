@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}Caja - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+        <aside class="sidebar">
+        <div class="sidebar-logo mb-2">
+            {% if settings.get('logo_path') %}
+                <img src="{{ url_for('static', filename='img/' + settings.get('logo_path')) }}" alt="Logo">
+            {% endif %}
+            <h2 class="space-font">{{ settings.get('barber_name', 'Alejo Barber') }}</h2>
+        </div>
+        <ul>
+            <li><a href="{{ url_for('admin.dashboard') }}" {% if request.endpoint == 'admin.dashboard' %}class="active"{% endif %}>Agenda</a></li>
+            <li><a href="{{ url_for('admin.finances') }}" {% if request.endpoint == 'admin.finances' %}class="active"{% endif %}>Caja</a></li>
+            <li><a href="{{ url_for('admin.blocks') }}" {% if request.endpoint == 'admin.blocks' %}class="active"{% endif %}>Bloqueos</a></li>
+            <li><a href="{{ url_for('admin.users') }}" {% if request.endpoint == 'admin.users' %}class="active"{% endif %}>Accesos</a></li>
+        </ul>
+    </aside>
+    
+    <div class="admin-content">
+                <div class="flex-between mb-2">
+            <h2 class="space-font">Caja y Estadísticas</h2>
+            <form method="POST" action="/admin/reset_caja" onsubmit="return confirm('¿Seguro que querés Reiniciar la Caja Actual a $0?');" style="margin:0;">
+                <button type="submit" class="btn-gold" style="padding: 0.5rem 1rem; font-size: 0.9rem; background: #ef4444; border-color: #ef4444; color: white;">
+                    <i data-lucide="refresh-cw" style="width:16px; margin-right:5px; vertical-align:text-bottom;"></i> Reiniciar Caja
+                </button>
+            </form>
+        </div>
+        
+        <div class="stats-grid mb-2">
+            <div class="glass-panel stat-card" style="display: flex; justify-content: space-between; border-top: 3px solid var(--primary-gold);">
+                <div>
+                    <p class="text-dim">Caja de Hoy</p>
+                    <h3 class="space-font" style="font-weight: 700;">${{ caja_hoy }}</h3>
+                    <div style="font-size: 0.8rem; color: #a1a1aa; margin-top: 5px;">
+                        Efectivo: <span style="color:#4ade80;">${{ "{:,.2f}".format(caja_efectivo).replace(",", ".") }}</span> | Transf: <span style="color:#60a5fa;">${{ "{:,.2f}".format(caja_transferencia).replace(",", ".") }}</span>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('modal-gasto').style.display='flex'" class="btn-outline" style="font-size:0.8rem; border:1px solid #333; border-radius:4px; padding:0.4rem 0.6rem; height: fit-content;">+ Cargar Gasto</button>
+            </div>
+            <div class="glass-panel stat-card">
+                <p class="text-dim">Ganancia Neta</p>
+                <h3 class="space-font" style="font-weight: 700; color: var(--primary-gold);">${{ net_profit }}</h3>
+            </div>
+            <div class="glass-panel stat-card" style="border-top: 3px solid #6366f1;">
+                <p class="text-dim">Caja Mensual</p>
+                <h3 class="space-font" style="font-weight: 700; color: #fff;">${{ caja_mes }}</h3>
+            </div>
+        </div>
+
+        <div class="glass-panel mb-2" style="padding: 1.5rem;">
+            <h3 class="space-font mb-2" style="font-size: 1.1rem;">Ingresos Últimos 7 días</h3>
+            <div style="position: relative; height: 250px; width: 100%;"><canvas id="incomeChart"></canvas></div>
+        </div>
+
+        <div class="mt-2 flex-between mb-2">
+            <h3 class="space-font">Venta de Mostrador rápida</h3>
+        </div>
+        
+        <div class="glass-panel mb-2" style="padding: 1.5rem;">
+            <form method="POST" action="{{ url_for('admin.add_sale') }}" style="display: flex; gap: 1rem; align-items: flex-end;">
+                <div style="flex: 2;">
+                    <label>Producto / Insumo</label>
+                    <input type="text" name="product_name" placeholder="Ej: Cera mate" required style="margin: 0;">
+                </div>
+                <div style="flex: 1;">
+                    <label>Precio</label>
+                    <input type="number" step="0.01" name="price" placeholder="Ej: 5000" required style="margin: 0;">
+                </div>
+                <div>
+                    <button type="submit" class="btn-gold" style="margin: 0; padding: 1rem 1.5rem;"><i data-lucide="plus" style="width:18px; margin-right: 5px; vertical-align: text-bottom; color: #000;"></i> Agregar Venta</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            {% if sales %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Precio</th>
+                        <th>Hora de carga</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sales %}
+                    <tr>
+                        <td>{{ s.product_name }}</td>
+                        <td class="space-font" style="font-weight: 500; color: var(--primary-gold);">${{ "{:,}".format(s.price|int).replace(",", ".") }}</td>
+                        <td class="text-dim">{{ s.created_at.strftime('%H:%M') if s.created_at else '' }}</td>
+                        <td class="actions-cell">
+                            <form method="POST" action="{{ url_for('admin.delete_sale', id=s.id) }}" style="margin:0;">
+                                <button type="submit" class="btn-icon delete" title="Eliminar Venta"><i data-lucide="trash-2"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="padding: 2rem; text-align: center;">
+                <p class="text-dim">No hay ventas registradas hoy.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Modal Gasto -->
+<div id="modal-gasto" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div class="glass-panel" style="width: 400px; background: #050505;">
+        <div class="flex-between mb-2">
+            <h3 class="space-font">Cargar Gasto (Caja Chica)</h3>
+            <button class="btn-icon" onclick="document.getElementById('modal-gasto').style.display='none'"><i data-lucide="x"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('admin.add_expense') }}">
+            <label>Concepto</label>
+            <input type="text" name="concept" placeholder="Ej: Luz, Bebidas" required>
+            <label>Monto</label>
+            <input type="number" step="0.01" name="amount" required>
+            <button type="submit" class="btn-gold">Guardar Gasto</button>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart Logic
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('incomeChart');
+    if(ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_labels | safe }},
+                datasets: [{
+                    label: 'Ingresos ($)',
+                    data: {{ chart_data | safe }},
+                    borderColor: '#FFCC00',
+                    backgroundColor: 'rgba(255, 204, 0, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0
+                }]
+            },
+            options: {
+                maintainAspectRatio: false, responsive: true, plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#1a1a1a' }, ticks: { color: '#7a7a7a' } },
+                    x: { grid: { display: false }, ticks: { color: '#7a7a7a' } }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

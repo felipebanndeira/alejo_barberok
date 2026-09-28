@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="top-header">
+    <div class="header-logo">
+        {% if settings.get('logo_path') %}
+            <img src="{{ url_for('static', filename='img/' + settings.get('logo_path')) }}" alt="Logo">
+        {% endif %}
+        <span>{{ settings.get('barber_name', 'Alejo Barber') }}</span>
+    </div>
+    <div class="header-nav">
+        <a href="{{ url_for('cliente.index') }}">Nuevo Turno</a>
+        <a href="{{ url_for('cliente.mis_turnos') }}" class="active">Mis Turnos</a>
+    </div>
+</header>
+
+<div class="container" style="margin-top: 3rem;">
+    <h2 class="mb-2 space-font text-center">Consultá tus turnos</h2>
+    <p class="text-dim text-center" style="margin-bottom: 2rem;">Ingresá tu número de celular para ver tus reservas confirmadas y pendientes.</p>
+
+    <div class="glass-panel" style="background: #0a0a0a; border: 1px solid #1a1a1a; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+        <form method="POST" action="{{ url_for('cliente.mis_turnos') }}" class="mis-turnos-form" style="display: flex; gap: 1rem; align-items: flex-end;">
+            <div style="flex: 1;">
+                <label style="color: var(--text-dim); margin-bottom: 0.5rem; display:block; font-size:0.9rem;">Número de Celular</label>
+                <input type="tel" name="phone" placeholder="Ej: 3755123456" required style="margin: 0; background: #030303; border-color: #222;">
+            </div>
+            <div>
+                <button type="submit" class="btn-gold" style="margin: 0; padding: 1rem 1.5rem; white-space: nowrap;">Buscar Turnos</button>
+            </div>
+        </form>
+    </div>
+
+    {% if searched %}
+        {% if turnos %}
+            <h3 class="mb-2 space-font text-center" style="margin-top: 3rem;">Tus Turnos</h3>
+            <p class="text-dim" style="font-size:0.85rem; text-align:center; margin-bottom:1.5rem;"><i data-lucide="info" style="width:14px;height:14px;vertical-align:middle;"></i> Los turnos solo se pueden cancelar desde acá con más de 1 hs de anticipación.</p>
+            <style>
+            .mt-card { background: #18181b; border-radius: 14px; border: 1px solid #27272a; padding: 1.25rem; width: 100%; box-sizing: border-box; margin-bottom: 1rem; }
+            .mt-row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+            .mt-time { font-size: 1.25rem; font-weight: 700; color: #facc15; font-family: 'Plus Jakarta Sans', sans-serif; }
+            .mt-price { font-size: 1.1rem; font-weight: 700; color: #facc15; text-align: right; }
+            .mt-date { font-size: 0.82rem; color: #71717a; display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 0.2rem; }
+            .mt-service { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 0.2rem; }
+            .mt-footer { border-top: 1px solid #27272a; padding-top: 0.75rem; margin-top: 0.75rem; display: flex; justify-content: flex-end; }
+            .mt-pill { border-radius: 6px; padding: 0.3rem 0.65rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; border: none; }
+            .mt-pill.pending   { background: rgba(234,179,8,0.12);  color: #f59e0b; }
+            .mt-pill.confirmed { background: rgba(34,197,94,0.12);  color: #22c55e; }
+            .mt-pill.cancelled { background: rgba(239,68,68,0.12);  color: #ef4444; }
+            </style>
+            <div style="display: flex; flex-direction: column; gap: 0;">
+            {% for t in turnos %}
+            <div class="mt-card">
+                <div class="mt-row1">
+                    <span class="mt-time">{{ t.time }}</span>
+                    <div style="text-align: right;">
+                        <div class="mt-price">${{ "{:,}".format(t.price|int).replace(",", ".") }}</div>
+                        <div class="mt-date">
+                            <i data-lucide="calendar" style="width:13px; height:13px;"></i>
+                            {{ t.date.split('-')[2] }}/{{ t.date.split('-')[1] }}/{{ t.date.split('-')[0] }}
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-service">{{ t.service_name }}</div>
+                <div class="mt-footer" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="mt-pill {{ t.status }}">
+                        {% if t.status == 'pending' %}Pendiente{% endif %}
+                        {% if t.status == 'confirmed' %}Confirmado{% endif %}
+                        {% if t.status == 'cancelled' %}Cancelado{% endif %}
+                    </span>
+                    {% if t.can_cancel %}
+                    <form method="POST" action="{{ url_for('cliente.cancelar_turno_cliente', id=t.id) }}" style="margin:0;" onsubmit="return confirm('¿Seguro que querés cancelar este turno?');">
+                        <input type="hidden" name="phone" value="{{ request.form.get('phone', '') }}">
+                        <button type="submit" style="background:transparent; border:1px solid #3f3f46; color:#ef4444; border-radius:6px; padding:0.35rem 0.75rem; font-size:0.75rem; font-weight:600; cursor:pointer;">Cancelar Turno</button>
+                    </form>
+                    {% elif t.status != 'cancelled' %}
+                    <a href="https://wa.me/5493755283261?text=Hola Alejo, te quería avisar que no voy a poder ir a mi turno de las {{t.time}}." target="_blank" style="font-size:0.75rem; color:#a1a1aa; text-decoration:underline;">Avisar tardanza/ausencia</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center" style="margin-top: 3rem; padding: 2rem; border: 1px dashed #333; border-radius: 12px;">
+                <i data-lucide="search-x" class="text-dim mb-2" style="width: 48px; height: 48px;"></i>
+                <h3 class="space-font mb-2">No se encontraron turnos</h3>
+                <p class="text-dim">No hay reservas asociadas a este número de celular.</p>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<div class="text-center" style="margin-top: 2rem;">
+    <a href="{{ url_for('cliente.index') }}" class="btn-outline" style="display:inline-block; text-decoration: none;">
+        <i data-lucide="arrow-left" style="width:16px; margin-right:5px; vertical-align:middle;"></i> Volver a Nuevo Turno
+    </a>
+</div>
+
+<!-- Developer Footer -->
+<div style="text-align: center; margin-top: 4rem; padding-bottom: 2rem;">
+    <p style="color: #444; font-size: 0.8rem; font-family: 'Inter', sans-serif;">
+        Desarrollado por <a href="https://wa.me/3755802727?text=Hola%20Felipe%2C%20me%20comunico%20porque%20vi%20tu%20trabajo%20en%20la%20web%20de%20Alejo%20Barber." target="_blank" style="color: #666; text-decoration: none; border-bottom: 1px solid #444; padding-bottom: 1px;" onmouseover="this.style.color='#FFCC00'" onmouseout="this.style.color='#666'">Felipe Bandeira</a><br><br><a href="javascript:void(0)" onclick="document.getElementById('privacy-modal').style.display='flex'" style="color: #666; text-decoration: none; border-bottom: 1px solid #444; padding-bottom: 1px; transition: color 0.3s;" onmouseover="this.style.color='#FFCC00'" onmouseout="this.style.color='#666'">Políticas de Privacidad</a>
+    </p>
+</div>
+
+{% endblock %}

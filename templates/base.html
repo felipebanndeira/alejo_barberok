@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Alejo Barber{% endblock %}</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    {% block content %}{% endblock %}
+
+    {% block scripts %}{% endblock %}
+    
+    <script>
+        lucide.createIcons({
+            attrs: {
+                'stroke-width': 1.5
+            }
+        });
+    </script>
+
+    <!-- Modal de Privacidad -->
+    <div id="privacy-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+        <div style="background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 25px; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto; color: #e5e5e5; font-family: 'Inter', sans-serif;">
+            <h2 style="color: #FFCC00; margin-bottom: 20px; font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem;">Políticas de Privacidad</h2>
+            
+            <h3 style="color: #fff; font-size: 1.1rem; margin-bottom: 10px;">1. Uso de los datos personales</h3>
+            <p style="font-size: 0.9rem; color: #a1a1aa; line-height: 1.5; margin-bottom: 20px;">En este sitio recolectamos únicamente los datos estrictamente necesarios (nombre y número de teléfono) con el único fin de gestionar la reserva de tu turno y poder contactarte en caso de modificaciones en el servicio.</p>
+            
+            <h3 style="color: #fff; font-size: 1.1rem; margin-bottom: 10px;">2. Privacidad y seguridad</h3>
+            <p style="font-size: 0.9rem; color: #a1a1aa; line-height: 1.5; margin-bottom: 20px;">Tu información personal es completamente confidencial y se almacena de forma segura. Tus datos no serán vendidos, cedidos ni compartidos con terceros bajo ninguna circunstancia. Únicamente el personal de la barbería tiene acceso a esta información para la correcta atención en el local.</p>
+            
+            <h3 style="color: #fff; font-size: 1.1rem; margin-bottom: 10px;">3. Uso de cookies</h3>
+            <p style="font-size: 0.9rem; color: #a1a1aa; line-height: 1.5; margin-bottom: 20px;">Esta plataforma utiliza exclusivamente cookies técnicas esenciales. Estas son necesarias para garantizar el correcto funcionamiento del sistema y mantener activa tu sesión mientras gestionás tu turno. No utilizamos cookies de rastreo con fines publicitarios.</p>
+            
+            <button onclick="document.getElementById('privacy-modal').style.display='none'" style="width: 100%; padding: 12px; background: #FFCC00; color: #000; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 10px;">Entendido</button>
+        </div>
+    </div>
+</body>
+</html>

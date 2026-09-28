@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+{% block title %}Agenda - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+        <aside class="sidebar">
+        <div class="sidebar-logo mb-2">
+            {% if settings.get('logo_path') %}
+                <img src="{{ url_for('static', filename='img/' + settings.get('logo_path')) }}" alt="Logo">
+            {% endif %}
+            <h2 class="space-font">{{ settings.get('barber_name', 'Alejo Barber') }}</h2>
+        </div>
+        <ul>
+            <li><a href="{{ url_for('admin.dashboard') }}" {% if request.endpoint == 'admin.dashboard' %}class="active"{% endif %}>Agenda</a></li>
+            <li><a href="{{ url_for('admin.finances') }}" {% if request.endpoint == 'admin.finances' %}class="active"{% endif %}>Caja</a></li>
+            <li><a href="{{ url_for('admin.blocks') }}" {% if request.endpoint == 'admin.blocks' %}class="active"{% endif %}>Bloqueos</a></li>
+            <li><a href="{{ url_for('admin.users') }}" {% if request.endpoint == 'admin.users' %}class="active"{% endif %}>Accesos</a></li>
+        </ul>
+    </aside>
+    
+    <div class="admin-content">
+        <h2 class="mb-2 space-font">Agenda</h2>
+        
+        <div class="flex-between mb-2">
+            <h3 class="space-font">Próximos Turnos</h3>
+            <button onclick="document.getElementById('modal-turno').style.display='flex'" class="btn-gold d-none-mobile" style="padding: 0.5rem 1rem; font-size: 0.9rem;"><i data-lucide="plus" style="width:16px; margin-right:5px; vertical-align:text-bottom;"></i> Agendar Manual</button>
+        </div>
+        <button onclick="document.getElementById('modal-turno').style.display='flex'" class="btn-gold d-none-desktop w-full mb-2" style="padding: 1rem; font-size: 1rem;"><i data-lucide="plus" style="width:18px; margin-right:5px; vertical-align:text-bottom;"></i> Agendar Manual</button>
+
+        <div class="table-container desktop-only">
+            {% if schedule %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Cliente</th>
+                        <th>Servicio</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in schedule %}
+                    <tr>
+                        <td class="space-font" style="font-size: 1.05rem; font-weight: 500; color: var(--primary-gold);">{{ a.date.split('-')[2] }}/{{ a.date.split('-')[1] }} {{ a.time }}</td>
+                        <td>
+                            <div style="cursor: pointer; text-decoration: underline; color: var(--text-light);" onclick="openClientModal('{{ a.client_phone }}', '{{ a.client_name }}')">{{ a.client_name }}</div>
+                            <div class="text-dim" style="font-size:0.85rem">{{ a.client_phone }}</div>
+                        </td>
+                        <td>{{ a.service_name }}</td>
+                        <td><span class="badge {{ a.status }}">
+                            {% if a.status == 'pending' %}Pendiente{% endif %}
+                            {% if a.status == 'confirmed' %}Confirmado{% endif %}
+                            {% if a.status == 'cancelled' %}Cancelado{% endif %}
+                        </span></td>
+                        <td class="actions-cell">
+                            {% if a.status == 'pending' %}
+                            <button type="button" class="btn-icon confirm" title="Confirmar Turno" onclick="openPaymentModal({{ a.id }})"><i data-lucide="check"></i></button>
+                            {% endif %}
+                            
+                            <a href="https://wa.me/{{a.client_phone|replace('+', '')}}?text=Hola {{a.client_name}}, estoy con una pequeña demora. ¿Podrías venir unos 15 minutitos más tarde de tu turno de las {{a.time}}? ¡Gracias y disculpá!" target="_blank" class="btn-icon" title="Avisar Demora 15 min" style="color: #ffc107;">
+                                <i data-lucide="clock"></i>
+                            </a>
+                            
+                            <a href="https://wa.me/{{a.client_phone|replace('+', '')}}?text=Hola {{a.client_name}}, te recuerdo tu turno de hoy a las {{a.time}} para el servicio de {{a.service_name}}." target="_blank" class="btn-icon" title="Enviar Recordatorio">
+                                <i data-lucide="message-circle"></i>
+                            </a>
+                            
+                            <form method="POST" action="{{ url_for('admin.update_status', id=a.id) }}" style="margin:0;" onsubmit="return confirm('¿Seguro que querés cancelar este turno?');">
+                                <input type="hidden" name="status" value="cancelled">
+                                <button type="submit" class="btn-icon delete" title="Cancelar Turno"><i data-lucide="x"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="padding: 2rem; text-align: center;">
+                <p class="text-dim">No hay próximos turnos agendados.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- MOBILE CARDS VIEW -->
+        <div class="mobile-only mb-2">
+            {% if schedule %}
+                <div style="display: flex; flex-direction: column; gap: 0.875rem; width: 100%;">
+                <style>
+                /* Card */
+                .appt-card { background: #18181b; border-radius: 16px; border: 1px solid #27272a; padding: 1.25rem; width: 100%; box-sizing: border-box; }
+
+                /* Row 1: Time + Badge */
+                .appt-row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+                .appt-time { font-size: 1.35rem; font-weight: 700; color: #facc15; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1; }
+
+                /* Soft badge — NO border */
+                .appt-pill { border-radius: 6px; padding: 0.3rem 0.65rem; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border: none; }
+                .appt-pill.pending   { background: rgba(234,179,8,0.12);  color: #f59e0b; }
+                .appt-pill.confirmed { background: rgba(34,197,94,0.12);  color: #22c55e; }
+                .appt-pill.cancelled { background: rgba(239,68,68,0.12);  color: #ef4444; }
+
+                /* Row 2: Name + meta */
+                .appt-row2 { margin-bottom: 0; }
+                .appt-name { font-size: 1rem; font-weight: 600; color: #ffffff; cursor: pointer; margin-bottom: 0.35rem; }
+                .appt-meta { font-size: 0.825rem; color: #71717a; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+                .appt-meta span { display: flex; align-items: center; gap: 0.375rem; }
+                .appt-meta svg { width: 14px !important; height: 14px !important; flex-shrink: 0; }
+
+                /* Row 3: Buttons */
+                .appt-row3 { display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #27272a; padding-top: 1rem; margin-top: 1rem; }
+                .appt-btn { width: 44px; height: 44px; border-radius: 50%; background: #27272a; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.18s; padding: 0; text-decoration: none; flex-shrink: 0; }
+                .appt-btn:hover { background: #3f3f46; }
+                .appt-btn svg { width: 20px !important; height: 20px !important; stroke-width: 2px; flex-shrink: 0; }
+                .appt-btn.btn-check  svg { stroke: #4ade80 !important; }
+                .appt-btn.btn-clock  svg { stroke: #fbbf24 !important; }
+                .appt-btn.btn-chat   svg { stroke: #f5f5f5 !important; }
+                .appt-btn.btn-cancel svg { stroke: #f87171 !important; }
+                </style>
+                {% for a in schedule %}
+                <div class="appt-card">
+                    <!-- Row 1 -->
+                    <div class="appt-row1">
+                        <span class="appt-time" style="font-size: 1.1rem;">{{ a.date.split('-')[2] }}/{{ a.date.split('-')[1] }} {{ a.time }}</span>
+                        <span class="appt-pill {{ a.status }}">
+                            {% if a.status == 'pending' %}Pendiente{% endif %}
+                            {% if a.status == 'confirmed' %}Confirmado{% endif %}
+                            {% if a.status == 'cancelled' %}Cancelado{% endif %}
+                        </span>
+                    </div>
+                    <!-- Row 2 -->
+                    <div class="appt-row2">
+                        <div class="appt-name" onclick="openClientModal('{{ a.client_phone }}', '{{ a.client_name }}')">{{ a.client_name }}</div>
+                        <div class="appt-meta">
+                            <span><i data-lucide="scissors"></i>{{ a.service_name }}</span>
+                            <span><i data-lucide="phone"></i>{{ a.client_phone }}</span>
+                        </div>
+                    </div>
+                    <!-- Row 3 -->
+                    <div class="appt-row3">
+                        {% if a.status == 'pending' %}
+                        <button type="button" class="appt-btn btn-check" title="Confirmar" onclick="openPaymentModal({{ a.id }})"><i data-lucide="check"></i></button>
+                        {% endif %}
+                        <a href="https://wa.me/{{a.client_phone|replace('+', '')}}?text=Hola {{a.client_name}}, estoy con una pequeña demora. ¿Podrías venir unos 15 minutitos más tarde de tu turno de las {{a.time}}? ¡Gracias y disculpá!" target="_blank" class="appt-btn btn-clock" title="Avisar Demora 15m"><i data-lucide="clock"></i></a>
+                        <a href="https://wa.me/{{a.client_phone|replace('+', '')}}?text=Hola {{a.client_name}}, te recuerdo tu turno de hoy a las {{a.time}} para el servicio de {{a.service_name}}." target="_blank" class="appt-btn btn-chat" title="Enviar WhatsApp"><i data-lucide="message-circle"></i></a>
+                        <form method="POST" action="{{ url_for('admin.update_status', id=a.id) }}" style="margin:0;" onsubmit="return confirm('¿Seguro que querés cancelar este turno?');">
+                            <input type="hidden" name="status" value="cancelled">
+                            <button type="submit" class="appt-btn btn-cancel" title="Cancelar"><i data-lucide="x"></i></button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <div style="padding: 2rem; text-align: center; border: 1px dashed #333; border-radius: 8px;">
+                    <p class="text-dim">No hay próximos turnos agendados.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Modal Turno Manual -->
+<div id="modal-turno" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div class="glass-panel" style="width: 400px; background: #050505;">
+        <div class="flex-between mb-2">
+            <h3 class="space-font">Agendar Turno Manual</h3>
+            <button class="btn-icon" onclick="document.getElementById('modal-turno').style.display='none'"><i data-lucide="x"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('admin.add_appointment') }}">
+            <label>Nombre del Cliente</label>
+            <input type="text" name="client_name" required>
+            
+            <label>Celular</label>
+            <input type="tel" name="client_phone" required>
+            
+            <label>Servicio</label>
+            <select name="service_id" required style="width:100%; padding:0.8rem; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); border-radius:8px; margin-bottom:1rem;">
+                {% for s in services %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+            </select>
+            
+            <div style="display:flex; gap:1rem;">
+                <div style="flex:1;">
+                    <label>Fecha</label>
+                    <input type="date" name="date" required>
+                </div>
+                <div style="flex:1;">
+                    <label>Hora</label>
+                    <input type="time" name="time" required>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-gold mt-2">Guardar Turno</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Cliente -->
+<div id="modal-cliente" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+    <div class="glass-panel" style="width: 400px; background: #050505;">
+        <div class="flex-between mb-2">
+            <h3 class="space-font" id="modal-client-name">Perfil de Cliente</h3>
+            <button class="btn-icon" onclick="document.getElementById('modal-cliente').style.display='none'"><i data-lucide="x"></i></button>
+        </div>
+        <div id="client-loading" class="text-dim">Cargando...</div>
+        <div id="client-data" style="display:none;">
+            <div style="margin-bottom: 1rem;">
+                <p class="text-dim">Visitas este mes</p>
+                <h2 class="space-font" id="client-visits">0</h2>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <p class="text-dim">Total gastado (LTV)</p>
+                <h2 class="space-font gold-text" id="client-ltv">$0</h2>
+            </div>
+            <div>
+                <p class="text-dim">Faltas sin cancelar (No-Shows)</p>
+                <h2 class="space-font" id="client-noshows">0</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Client Modal Logic
+async function openClientModal(phone, name) {
+    document.getElementById('modal-cliente').style.display = 'flex';
+    document.getElementById('modal-client-name').textContent = name;
+    document.getElementById('client-loading').style.display = 'block';
+    document.getElementById('client-data').style.display = 'none';
+    
+    try {
+        const res = await fetch(`/admin/api/client/${phone}`);
+        const data = await res.json();
+        
+        document.getElementById('client-visits').textContent = data.visits;
+        document.getElementById('client-ltv').textContent = '$' + data.ltv.toLocaleString('es-AR');
+        
+        const noShowsEl = document.getElementById('client-noshows');
+        noShowsEl.textContent = data.no_shows;
+        if(data.no_shows > 0) {
+            noShowsEl.style.color = '#dc3545';
+        } else {
+            noShowsEl.style.color = 'var(--text-light)';
+        }
+        
+        document.getElementById('client-loading').style.display = 'none';
+        document.getElementById('client-data').style.display = 'block';
+    } catch(e) {
+        document.getElementById('client-loading').textContent = 'Error al cargar';
+    }
+}
+</script>
+
+<!-- ══ Modal: Método de Pago ══ -->
+<div id="modal-pago" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:2000; justify-content:center; align-items:center; padding: 1.5rem;">
+    <div style="background:#18181b; border:1px solid #27272a; border-radius:18px; width:100%; max-width:360px; padding:2rem; box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
+        <h3 style="color:#ffffff; font-size:1.15rem; font-weight:700; margin-bottom:0.4rem; font-family:'Plus Jakarta Sans',sans-serif;">¿Cómo abonó el cliente?</h3>
+        <p style="color:#71717a; font-size:0.85rem; margin-bottom:1.75rem;">Seleccioná el método de pago para confirmar el turno.</p>
+
+        <!-- Efectivo -->
+        <form id="form-efectivo" method="POST" style="margin-bottom:0.75rem;">
+            <input type="hidden" name="status" value="confirmed">
+            <input type="hidden" name="payment_method" value="efectivo">
+            <button type="submit" style="
+                width:100%; padding:1rem; border-radius:12px;
+                background:rgba(34,197,94,0.1); border:1.5px solid rgba(34,197,94,0.3);
+                color:#4ade80; font-size:1rem; font-weight:600; cursor:pointer;
+                display:flex; align-items:center; justify-content:center; gap:0.6rem;
+                transition: background 0.2s;">
+                <i data-lucide="banknote" style="width:20px;height:20px;"></i> Efectivo
+            </button>
+        </form>
+
+        <!-- Transferencia -->
+        <form id="form-transferencia" method="POST" style="margin-bottom:1.25rem;">
+            <input type="hidden" name="status" value="confirmed">
+            <input type="hidden" name="payment_method" value="transferencia">
+            <button type="submit" style="
+                width:100%; padding:1rem; border-radius:12px;
+                background:rgba(59,130,246,0.1); border:1.5px solid rgba(59,130,246,0.3);
+                color:#60a5fa; font-size:1rem; font-weight:600; cursor:pointer;
+                display:flex; align-items:center; justify-content:center; gap:0.6rem;
+                transition: background 0.2s;">
+                <i data-lucide="smartphone" style="width:20px;height:20px;"></i> Transferencia
+            </button>
+        </form>
+
+        <!-- Cancelar -->
+        <button onclick="closePaymentModal()" style="
+            width:100%; padding:0.7rem; border-radius:10px;
+            background:transparent; border:1px solid #3f3f46;
+            color:#71717a; font-size:0.875rem; cursor:pointer; transition: color 0.2s;">
+            Cancelar
+        </button>
+    </div>
+</div>
+
+<script>
+function openPaymentModal(appointmentId) {
+    const baseUrl = '/admin/appointments/' + appointmentId + '/status';
+    document.getElementById('form-efectivo').action = baseUrl;
+    document.getElementById('form-transferencia').action = baseUrl;
+    const modal = document.getElementById('modal-pago');
+    modal.style.display = 'flex';
+    lucide.createIcons();
+}
+function closePaymentModal() {
+    document.getElementById('modal-pago').style.display = 'none';
+}
+// Close on backdrop click
+document.getElementById('modal-pago').addEventListener('click', function(e) {
+    if (e.target === this) closePaymentModal();
+});
+</script>
+{% endblock %}
