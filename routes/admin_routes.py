@@ -514,7 +514,7 @@ def add_appointment():
     
     db = get_db()
     db.execute(
-        "INSERT INTO appointments (client_name, client_phone, service_id, date, time, status) VALUES (%s, %s, %s, %s, %s, 'confirmed')",
+        "INSERT INTO appointments (client_name, client_phone, service_id, date, time, status) VALUES (%s, %s, %s, %s, %s, 'pending')",
         (client_name, client_phone, service_id, date, time)
     )
     db.commit()
