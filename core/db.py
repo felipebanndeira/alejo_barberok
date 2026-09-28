@@ -137,6 +137,7 @@ def init_db():
     if db.execute('SELECT COUNT(*) FROM settings').fetchone()[0] == 0:
         settings_data = [
             ('barber_name',          'Alejo Barber'),
+            ('logo_path',            'logo.png'),
             ('whatsapp',             '123456789'),
             ('deposit_percentage',   '50'),
             ('bank_details',         'CBU: 0000000000000000000000\nAlias: alejo.barber'),
