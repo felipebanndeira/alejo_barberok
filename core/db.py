@@ -1,10 +1,24 @@
 import psycopg2
 import psycopg2.extras
+from psycopg2 import pool
 from flask import g
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+_pool = None
+
+def get_pool():
+    global _pool
+    if _pool is None or _pool.closed:
+        _pool = pool.ThreadedConnectionPool(
+            minconn=1,
+            maxconn=10,
+            dsn=os.environ['DATABASE_URL'],
+            cursor_factory=psycopg2.extras.DictCursor
+        )
+    return _pool
 
 
 class _PgWrapper:
@@ -32,29 +46,49 @@ class _PgWrapper:
         return cur
 
     def commit(self):
-        self._conn.commit()
-
-    def close(self):
         try:
-            self._conn.close()
+            self._conn.commit()
         except Exception:
             pass
+
+    def close(self):
+        # No cerramos el socket físico aquí, se retorna al pool en close_db()
+        pass
 
 
 def get_db():
     if 'db' not in g:
-        conn = psycopg2.connect(
-            os.environ['DATABASE_URL'],
-            cursor_factory=psycopg2.extras.DictCursor
-        )
+        p = get_pool()
+        try:
+            conn = p.getconn()
+            if conn.closed:
+                p.putconn(conn, close=True)
+                conn = p.getconn()
+        except Exception:
+            global _pool
+            _pool = None
+            conn = get_pool().getconn()
+
         g.db = _PgWrapper(conn)
+        g._raw_conn = conn
     return g.db
 
 
 def close_db(e=None):
-    db = g.pop('db', None)
-    if db is not None:
-        db.close()
+    raw_conn = g.pop('_raw_conn', None)
+    g.pop('db', None)
+    if raw_conn is not None and _pool is not None and not _pool.closed:
+        try:
+            if e:
+                raw_conn.rollback()
+            else:
+                raw_conn.commit()
+            get_pool().putconn(raw_conn)
+        except Exception:
+            try:
+                get_pool().putconn(raw_conn, close=True)
+            except Exception:
+                pass
 
 
 def init_db():
