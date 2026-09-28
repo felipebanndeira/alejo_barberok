@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from werkzeug.security import check_password_hash
 import os
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from core.db import get_db
 from core.auth import login_required
 
@@ -9,6 +10,10 @@ admin_bp = Blueprint('admin', __name__)
 
 # Postgres timezone used for all localtime conversions
 _TZ = 'America/Argentina/Buenos_Aires'
+ARG_TZ = ZoneInfo(_TZ)
+
+def now_arg():
+    return datetime.now(ARG_TZ)
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -35,12 +40,16 @@ def logout():
 @login_required
 def dashboard():
     db = get_db()
-    today = datetime.now().strftime('%Y-%m-%d')
+    current_time_arg = now_arg()
+    today = current_time_arg.strftime('%Y-%m-%d')
     
     # Shift logic
     last_reset_str = db.execute("SELECT value FROM settings WHERE key='last_reset_date'").fetchone()
     last_reset = last_reset_str[0] if last_reset_str else '2000-01-01 00:00:00'
-    first_of_month = datetime.now().strftime('%Y-%m-01 00:00:00')
+    first_of_month = current_time_arg.strftime('%Y-%m-01 00:00:00')
+    # Evitar desfasajes si last_reset tiene hora futura por UTC
+    if last_reset > current_time_arg.strftime('%Y-%m-%d %H:%M:%S'):
+        last_reset = first_of_month
     start_datetime = max(last_reset, first_of_month)
     
     # Metrics
@@ -81,7 +90,7 @@ def dashboard():
     chart_labels = []
     chart_data = []
     for i in range(6, -1, -1):
-        d = datetime.now() - timedelta(days=i)
+        d = now_arg() - timedelta(days=i)
         d_str = d.strftime('%Y-%m-%d')
         chart_labels.append(['Dom','Lun','Mar','Mie','Jue','Vie','Sab'][int(d.strftime('%w'))])
         inc_app = db.execute(
@@ -120,14 +129,17 @@ def dashboard():
 @login_required
 def finances():
     db = get_db()
-    today = datetime.now().strftime('%Y-%m-%d')
+    current_time_arg = now_arg()
+    today = current_time_arg.strftime('%Y-%m-%d')
     appointments_today = db.execute("SELECT COUNT(*) FROM appointments WHERE date = %s", (today,)).fetchone()[0]
     total_clients = db.execute("SELECT COUNT(DISTINCT client_phone) FROM appointments").fetchone()[0]
     
     # Shift logic
     last_reset_str = db.execute("SELECT value FROM settings WHERE key='last_reset_date'").fetchone()
     last_reset = last_reset_str[0] if last_reset_str else '2000-01-01 00:00:00'
-    first_of_month = datetime.now().strftime('%Y-%m-01 00:00:00')
+    first_of_month = current_time_arg.strftime('%Y-%m-01 00:00:00')
+    if last_reset > current_time_arg.strftime('%Y-%m-%d %H:%M:%S'):
+        last_reset = first_of_month
     start_datetime = max(last_reset, first_of_month)
 
     caja_hoy_app = db.execute(
@@ -176,7 +188,7 @@ def finances():
     net_profit_str = f"{net_profit:,.2f}".replace(",", ".")
     
     # Monthly logic
-    current_month = datetime.now().strftime('%Y-%m')
+    current_month = current_time_arg.strftime('%Y-%m')
     caja_mes_app = db.execute(
         f"SELECT SUM(s.price) FROM appointments a JOIN services s ON a.service_id = s.id"
         f" WHERE a.date LIKE %s AND (a.confirmed_at AT TIME ZONE '{_TZ}') >= %s AND a.status = 'confirmed'",
@@ -207,7 +219,7 @@ def finances():
     chart_labels = []
     chart_data = []
     for i in range(6, -1, -1):
-        d = datetime.now() - timedelta(days=i)
+        d = current_time_arg - timedelta(days=i)
         d_str = d.strftime('%Y-%m-%d')
         chart_labels.append(['Dom','Lun','Mar','Mie','Jue','Vie','Sab'][int(d.strftime('%w'))])
         inc_app = db.execute(
@@ -479,7 +491,7 @@ def add_expense():
 @login_required
 def get_client(phone):
     db = get_db()
-    current_month = datetime.now().strftime('%Y-%m')
+    current_month = now_arg().strftime('%Y-%m')
     
     # Visits this month
     visits = db.execute(
@@ -524,7 +536,7 @@ def add_appointment():
 @login_required
 def reset_caja():
     db = get_db()
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    now = now_arg().strftime('%Y-%m-%d %H:%M:%S')
     db.execute(
         "INSERT INTO settings (key, value) VALUES ('last_reset_date', %s)"
         " ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",

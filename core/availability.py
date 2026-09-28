@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from core.db import get_db
+
+ARG_TZ = ZoneInfo('America/Argentina/Buenos_Aires')
 
 def get_available_times(date_str):
     db = get_db()
@@ -40,7 +43,7 @@ def get_available_times(date_str):
         generate_slots(start2, end2)
     
     # 3. Filter past times if it's today
-    now = datetime.now()
+    now = datetime.now(ARG_TZ)
     if date_obj.date() == now.date():
         current_time_str = now.strftime('%H:%M')
         slots = [s for s in slots if s > current_time_str]
